@@ -144,7 +144,7 @@ def count():
     data_len = len(data)
     return {"Total number of persons": data_len}, 201
 
-# error hendling
+# error handling
 @app.errorhandler(404)
 def errorhandler(error):
     return {"message": "API method does not exist."}, 404
