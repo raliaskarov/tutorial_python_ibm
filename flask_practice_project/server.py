@@ -1,6 +1,5 @@
-''' Executing this function initiates the application of sentiment
-    analysis to be executed over the Flask channel and deployed on
-    localhost:5000.
+'''
+Simple Flask wrapper around sentiment_analyzer.
 '''
 from flask import Flask, render_template, request
 from SentimentAnalysis.sentiment_analysis import sentiment_analyzer
@@ -9,32 +8,35 @@ app = Flask("Sentiment Analyzer")
 
 @app.route("/sentimentAnalyzer")
 def sent_analyzer():
-    ''' This code receives the text from the HTML interface and 
-        runs sentiment analysis over it using sentiment_analysis()
-        function. The output returned shows the label and its confidence 
-        score for the provided text.
-    '''
     text_to_analyze = request.args.get("textToAnalyze")
+
+    # 1) If the query param is empty or whitespace → 400 + “String empty…”
+    if not text_to_analyze or text_to_analyze.strip() == "":
+        return "String empty, please provide text", 400
+
+    # 2) Call the analyzer
     response = sentiment_analyzer(text_to_analyze)
 
-    # Check for error returned from sentiment_analyzer
-    if response.get('error'):
+    # 3) If analyzer returned an “error” field, show that
+    if response.get("error"):
+        # If it was exactly “No text provided. Input text” it won’t reach here,
+        # because we already checked for empty above.
         return f"Error: {response['error']}", 400
 
-    # Check if label is None
-    if response['label'] is None:
-        return "Invalid input. Please use a meaningful sentence.", 400
-        
-    sentiment = response['label'].split('_')[1]
-    score = response['score']
-    return f"Text sentiment: {sentiment} \nScore: {score}"
+    # 4) If label is still None → “meaningless/unparsable”
+    if response["label"] is None:
+        return "Please enter meaningful sentence", 400
+
+    # 5) Otherwise we have a valid label like “documentSentiment_positive”
+    #    or “documentSentiment_negative”. Split off the part after underscore.
+    #    (If your actual label format is “positive” you can adjust accordingly.)
+    sentiment = response["label"].split("_")[-1]
+    score = response["score"]
+    return f"Text sentiment: {sentiment}\nScore: {score}"
 
 @app.route("/")
 def render_index_page():
-    ''' This function initiates the rendering of the main application
-        page over the Flask channel
-    '''
-    return render_template('index.html')
+    return render_template("index.html")
 
 if __name__ == "__main__":
-    app.run(debug=True, host = "0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)

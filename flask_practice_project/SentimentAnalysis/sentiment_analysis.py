@@ -1,53 +1,60 @@
 """
-This module defines the sentiment_analyzer function, which sends a text string
-to IBM Skills Network Watson NLP API to perform sentiment analysis and returns
-the result.
+This module defines sentiment_analyzer(), which calls Watson NLP and returns a simple dict.
 """
 
 import json
-import requests  # Import the requests library to handle HTTP requests
+import requests
 
 def sentiment_analyzer(text_to_analyse):
     """
-    Analyzes the sentiment of the provided text using the Watson NLP API.
-
-    Args:
-        text_to_analyse (str): The text to be analyzed.
-
-    Returns:
-        dict: A dictionary containing sentiment 'label', 'score', and 'error' (if any).
+    Returns a dict with keys:
+      - label:   e.g. "document_sentiment_positive" or "ERROR_No Text Provided"
+      - score:   float or None
+      - error:   None or a short message
     """
+    print(f"Received text_to_analyse: {text_to_analyse!r}")
 
+    # 1) Empty‐input check
     if not text_to_analyse or text_to_analyse.strip() == "":
-        return {"label": None, "score": None, "error": "No text provided. Input text"}
+        return {
+            "label": "ERROR_No Text Provided",
+            "score": None,
+            "error": "No text provided. Input text"
+        }
 
-    url = 'https://sn-watson-sentiment-bert.labs.skills.network/v1/watson.runtime.nlp.v1/NlpService\
-        /SentimentPredict'  # URL of the sentiment analysis service
-    myobj = { "raw_document":
-            { "text": text_to_analyse } }  # Create a dictionary with the text to be analyzed
+    # 2) Correct single‐line URL (no backslash/newline)
+    url = (
+        "https://sn-watson-sentiment-bert.labs.skills.network/"
+        "v1/watson.runtime.nlp.v1/NlpService/SentimentPredict"
+    )
+    myobj = {"raw_document": {"text": text_to_analyse}}
+    header = {
+        "grpc-metadata-mm-model-id":
+        "sentiment_aggregated-bert-workflow_lang_multi_stock"
+    }
 
-    # Set the headers required for the API request
-    header = {"grpc-metadata-mm-model-id":
-            "sentiment_aggregated-bert-workflow_lang_multi_stock"}
-
-    # Send a POST request to the API with the text and headers
-    response = requests.post(url,
-                json = myobj, headers=header, timeout = 10)
-    formatted_response = json.loads(response.text)
-
-    res_status_code = response.status_code
-    print("Response status code: ", res_status_code)
-
-    output = {"label": None, "score": None}
-
+    # 3) Call Watson and bail on non‐200
     try:
-        label = formatted_response['documentSentiment']['label']
-        score = formatted_response['documentSentiment']['score']
-        output["label"] = label
-        output["score"] = score
-    except (KeyError, TypeError) as e:
-        print(f"Error parsing response: {e}")
-        output["error"] = f"API returned status code: {e}"
+        response = requests.post(url, json=myobj, headers=header, timeout=10)
+    except requests.RequestException as e:
+        print(f"Network/timeout error: {e}")
+        return {"label": None, "score": None, "error": f"Request failed: {e}"}
 
-    print(f"Returning output: {output}")
-    return output
+    print("Response status code: ", response.status_code)
+    if response.status_code != 200:
+        return {
+            "label": None,
+            "score": None,
+            "error": f"Service returned status code {response.status_code}"
+        }
+
+    # 4) Parse JSON and return
+    try:
+        data = response.json()
+        label = data["documentSentiment"]["label"]
+        score = data["documentSentiment"]["score"]
+    except Exception as e:
+        print(f"Error parsing JSON: {e}")
+        return {"label": None, "score": None, "error": f"Unexpected response format: {e}"}
+
+    return {"label": label, "score": score, "error": None}
