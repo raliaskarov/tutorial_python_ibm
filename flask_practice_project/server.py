@@ -16,9 +16,12 @@ def sent_analyzer():
     '''
     text_to_analyze = request.args.get("textToAnalyze")
     response = sentiment_analyzer(text_to_analyze)
+
+    if response['label'] is None:
+        return "Invalid input. Please use meaningful sentence"
+
     sentiment = response['label'].split('_')[1]
     score = response['score']
-
     return f"Text sentiment: {sentiment} \nScore: {score}"
 
 @app.route("/")
@@ -29,6 +32,4 @@ def render_index_page():
     return render_template('index.html')
 
 if __name__ == "__main__":
-    ''' This functions executes the flask app and deploys it on localhost:5000
-    '''
     app.run(debug=True, host = "0.0.0.0", port=5000)
