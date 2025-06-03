@@ -17,9 +17,14 @@ def sent_analyzer():
     text_to_analyze = request.args.get("textToAnalyze")
     response = sentiment_analyzer(text_to_analyze)
 
-    if response['label'] is None:
-        return "Invalid input. Please use meaningful sentence"
+    # Check for error returned from sentiment_analyzer
+    if response.get('error'):
+        return f"Error: {response['error']}", 400
 
+    # Check if label is None
+    if response['label'] is None:
+        return "Invalid input. Please use a meaningful sentence.", 400
+        
     sentiment = response['label'].split('_')[1]
     score = response['score']
     return f"Text sentiment: {sentiment} \nScore: {score}"
