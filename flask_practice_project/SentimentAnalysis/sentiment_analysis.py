@@ -1,3 +1,4 @@
+# sentiment_analysis.py
 """
 This module defines sentiment_analyzer(), which calls Watson NLP and returns a simple dict.
 """
@@ -22,7 +23,7 @@ def sentiment_analyzer(text_to_analyse):
             "error": "No text provided. Input text"
         }
 
-    # 2) Correct single‐line URL (no backslash/newline)
+    # 2) URL 
     url = (
         "https://sn-watson-sentiment-bert.labs.skills.network/"
         "v1/watson.runtime.nlp.v1/NlpService/SentimentPredict"
@@ -42,6 +43,7 @@ def sentiment_analyzer(text_to_analyse):
 
     print("Response status code: ", response.status_code)
     if response.status_code != 200:
+        print(f"Error with status code: {response.status_code}")
         return {
             "label": None,
             "score": None,
