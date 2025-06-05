@@ -47,7 +47,7 @@ def sentiment_analyzer(text_to_analyse):
         return {
             "label": None,
             "score": None,
-            "error": f"Service returned status code {response.status_code}"
+            "error": f"Text is unparsable. Please provide meaningful text."
         }
 
     # 4) Parse JSON and return
